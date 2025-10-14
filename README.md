@@ -13,6 +13,7 @@ Project Structure
 ├── predict.py                  # Main prediction logic
 ├── .gitattributes              # Git LFS configuration
 └── README.md
+
 Setup Instructions
 1. Prerequisites
 Git LFS installed: git lfs install
