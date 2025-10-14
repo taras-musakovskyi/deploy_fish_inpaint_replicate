@@ -1,0 +1,23 @@
+name: Deploy to Replicate
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Cog
+        run: |
+          sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/latest/download/cog_linux_x86_64
+          sudo chmod +x /usr/local/bin/cog
+
+      - name: Push to Replicate
+        env:
+          REPLICATE_CLI_TOKEN: ${{ secrets.REPLICATE_CLI_TOKEN }}
+        run: |
+          echo $REPLICATE_CLI_TOKEN | cog login --token-stdin
+          cog push r8.im/taras-musakovskyi/inpaint-fish-to-underwater-appt

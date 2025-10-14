@@ -1,0 +1,18 @@
+build:
+  gpu: true
+  python_version: "3.11"
+  python_packages:
+    - "torch==2.1.0"
+    - "torchvision==0.16.0"
+    - "diffusers==0.27.2"
+    - "transformers==4.40.2"
+    - "accelerate==0.28.0"
+    - "safetensors==0.4.2"
+    - "peft==0.10.0"
+    - "huggingface_hub==0.23.0"
+    - "pillow==10.2.0"
+  system_packages:
+    - "libgl1-mesa-glx"
+    - "libglib2.0-0"
+
+predict: "predict.py:Predictor"
