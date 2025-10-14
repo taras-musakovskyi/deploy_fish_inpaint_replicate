@@ -1,7 +1,9 @@
 build:
   gpu: true
-  python_version: "3.11"
+  cuda: "12.1"
+  python_version: "3.10"
   python_packages:
+    - "numpy<2"
     - "torch==2.1.0"
     - "torchvision==0.16.0"
     - "diffusers==0.27.2"
