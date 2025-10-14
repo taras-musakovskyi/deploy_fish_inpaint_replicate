@@ -40,6 +40,7 @@ git add cog.yaml predict.py .github/
 # Commit and push
 git commit -m "Initial Cog deployment setup"
 git push origin main
+
 3. Configure GitHub Secrets
 Go to your GitHub repository
 Navigate to Settings → Secrets and variables → Actions
