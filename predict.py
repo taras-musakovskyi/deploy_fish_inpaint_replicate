@@ -61,8 +61,8 @@ class Predictor(BasePredictor):
         self.model_name = "runwayml/stable-diffusion-v1-5"
         
         # Paths to baked-in LoRAs
-        self.underwater_lora_path = "/models/underwater_lora_best_epoch_43.safetensors"
-        self.fish_lora_path = "/models/back_up_this_one_lora_1b_best_epoch_24.safetensors"
+        self.underwater_lora_path = "models/underwater_lora_best_epoch_43.safetensors"
+        self.fish_lora_path = "models/back_up_this_one_lora_1b_best_epoch_24.safetensors"
         
         print(f"📦 Loading base SD 1.5 pipeline on {self.device}...")
         # Load base generation pipeline
