@@ -61,8 +61,8 @@ class Predictor(BasePredictor):
         self.model_name = "runwayml/stable-diffusion-v1-5"
         
         # Paths to baked-in LoRAs
-        self.underwater_lora_path = "models/underwater_lora_best_epoch_43.safetensors"
-        self.fish_lora_path = "models/back_up_this_one_lora_1b_best_epoch_24.safetensors"
+        self.underwater_lora_path = "/src/models/underwater_lora_best_epoch_43.safetensors"
+        self.fish_lora_path = "/src/models/back_up_this_one_lora_1b_best_epoch_24.safetensors"
         
         print(f"📦 Loading base SD 1.5 pipeline on {self.device}...")
         # Load base generation pipeline
@@ -154,6 +154,10 @@ class Predictor(BasePredictor):
             description="Base image to inpaint into (stage 2 only)",
             default=None
         ),
+        mask_image: Path = Input(
+            description="Mask image (grayscale PNG, white=inpaint area) (stage 2 only)",
+            default=None
+        ),
         species: str = Input(
             description="Fish species to inpaint",
             default="goldfish",
@@ -173,7 +177,9 @@ class Predictor(BasePredictor):
         elif mode == "inpaint_fish":
             if image is None:
                 raise ValueError("Image is required for inpaint_fish mode")
-            return self._inpaint_fish(image, species, generator)
+            if mask_image is None:
+                raise ValueError("Mask image is required for inpaint_fish mode")
+            return self._inpaint_fish(image, mask_image, species, generator)
     
     def _generate_underwater_room(self, prompt: str, generator):
         """Stage 1 + 1.1: Generate and upscale underwater room"""
@@ -222,7 +228,7 @@ class Predictor(BasePredictor):
         
         return Path(output_path)
     
-    def _inpaint_fish(self, base_image_path: Path, species: str, generator):
+    def _inpaint_fish(self, base_image_path: Path, mask_image_path: Path, species: str, generator):
         """Stage 2: Inpaint fish into base image"""
         print(f"🐟 Starting fish inpainting for species: {species}")
         
@@ -239,35 +245,38 @@ class Predictor(BasePredictor):
         w, h = init_image.size
         print(f"📐 Base image size: {w}x{h}")
         
+        # Load mask from UI (binary: 0=keep, 255=inpaint)
+        print("🎭 Loading mask image...")
+        mask_image = Image.open(str(mask_image_path)).convert("L")
+        
         # Get species-specific configs
         mask_dims = SPECIES_DIMENSIONS[species]
         guidance_scale = SPECIES_GUIDANCE[species]
         mask_fill = SPECIES_MASK_FILL[species]
         pad_multiplier = SPECIES_PAD_MULTIPLIER[species]
         
-        mask_w = mask_dims["width"]
-        mask_h = mask_dims["height"]
+        # Adjust mask fill value based on species (convert binary to species-specific)
+        print(f"🎨 Adjusting mask fill to species-specific value: {mask_fill}")
+        mask_image = mask_image.point(lambda p: mask_fill if p > 128 else 0)
         
-        print(f"🎭 Creating mask: {mask_w}x{mask_h}, fill={mask_fill}")
+        # Find mask bounding box to determine crop region
+        bbox = mask_image.getbbox()
+        if bbox is None:
+            raise ValueError("Mask is empty - no inpaint region detected")
         
-        # Create mask at random location
-        mask_image = Image.new("L", (w, h), 0)
-        draw = ImageDraw.Draw(mask_image)
+        mask_x0, mask_y0, mask_x1, mask_y1 = bbox
+        mask_w = mask_x1 - mask_x0
+        mask_h = mask_y1 - mask_y0
+        cx = (mask_x0 + mask_x1) // 2
+        cy = (mask_y0 + mask_y1) // 2
         
-        cx = random.randint(mask_w // 2, w - mask_w // 2)
-        cy = random.randint(mask_h // 2, h - mask_h // 2)
+        print(f"📍 Mask center: ({cx}, {cy}), size: {mask_w}x{mask_h}")
         
-        print(f"📍 Mask center: ({cx}, {cy})")
-        
-        draw.ellipse(
-            [cx - mask_w // 2, cy - mask_h // 2, cx + mask_w // 2, cy + mask_h // 2],
-            fill=mask_fill
-        )
-        
+        # Apply blur to mask
         blur_radius = int(mask_w * 0.08)
         mask_image = mask_image.filter(ImageFilter.GaussianBlur(blur_radius))
         
-        # Determine crop box
+        # Determine crop box with padding
         pad = int(mask_w * pad_multiplier)
         x0 = max(0, cx - mask_w // 2 - pad)
         y0 = max(0, cy - mask_h // 2 - pad)
@@ -321,4 +330,3 @@ class Predictor(BasePredictor):
         print(f"✅ Fish inpainted successfully!")
         
         return Path(output_path)
-
