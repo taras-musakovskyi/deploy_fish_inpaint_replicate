@@ -294,8 +294,16 @@ class Predictor(BasePredictor):
         region_small = region.resize((512, 512), Image.LANCZOS)
         mask_small = region_mask.resize((512, 512), Image.LANCZOS)
         
-        # Build prompt
-        prompt = f"a complete single {species} with head, body and tail visible, full fish from head to tail, highly detailed, colorful tale, in clear water, sharp focus"
+        SPECIES_PROMPTS_INPAINT = {
+            "gold molly": "a complete single gold molly fish with head, body and tail visible, full fish from head to tail, highly detailed, swimming in aquarium, in clear water, sharp focus",
+            "guppy": "a complete single guppy fish with head, body and tail visible, full fish from head to tail, highly detailed, colorful tale, in clear water, sharp focus",
+            "goldfish": "a complete single goldfish with head, body and tail visible, full fish from head to tail, highly detailed, in clear water, sharp focus",
+            "ancistrus catfish": "a complete single ancistrus catfish with head, body and tail visible, full fish from head to tail, highly detailed, on substrate, sharp focus",
+            "black molly": "a complete single black molly fish with head, body and tail visible, full fish from head to tail, highly detailed, sharp focus",
+            "dalmatian molly": "a complete single dalmatian molly fish with head, body and tail visible, full fish from head to tail, highly detailed, swimming in aquarium, sharp focus",
+        }
+
+        prompt = SPECIES_PROMPTS_INPAINT.get(species, "a stunning colorful fish swimming gracefully in a crystal clear aquarium with perfect lighting")
         
         negative_prompt = (
             "multiple fish, duplicate, extra eyes, multiple eyes, double eyes, four eyes, "
