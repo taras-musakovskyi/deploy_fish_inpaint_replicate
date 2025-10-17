@@ -250,7 +250,6 @@ class Predictor(BasePredictor):
         mask_image = Image.open(str(mask_image_path)).convert("L")
         
         # Get species-specific configs
-        mask_dims = SPECIES_DIMENSIONS[species]
         guidance_scale = SPECIES_GUIDANCE[species]
         mask_fill = SPECIES_MASK_FILL[species]
         pad_multiplier = SPECIES_PAD_MULTIPLIER[species]
@@ -272,12 +271,14 @@ class Predictor(BasePredictor):
         
         print(f"📍 Mask center: ({cx}, {cy}), size: {mask_w}x{mask_h}")
         
+        # Calculate pad before applying blur to the mask
+        pad = int(mask_w * pad_multiplier)
+
         # Apply blur to mask
         blur_radius = int(mask_w * 0.08)
         mask_image = mask_image.filter(ImageFilter.GaussianBlur(blur_radius))
         
         # Determine crop box with padding
-        pad = int(mask_w * pad_multiplier)
         x0 = max(0, cx - mask_w // 2 - pad)
         y0 = max(0, cy - mask_h // 2 - pad)
         x1 = min(w, cx + mask_w // 2 + pad)
