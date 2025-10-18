@@ -15,22 +15,13 @@ from peft import PeftModel
 from PIL import Image, ImageDraw, ImageFilter
 
 # Species-specific configurations
-SPECIES_DIMENSIONS = {
-    "goldfish": {"width": 592, "height": 512},
-    "gold molly": {"width": 728, "height": 512},
-    "guppy": {"width": 656, "height": 512},
-    "ancistrus catfish": {"width": 768, "height": 512},
-    "black molly": {"width": 656, "height": 512},
-    "dalmatian molly": {"width": 768, "height": 512},
-}
-
 SPECIES_GUIDANCE = {
     "guppy": 9.5,
-    "gold molly": 8.5,
-    "black molly": 8.5,
-    "dalmatian molly": 8.5,
-    "ancistrus catfish": 7.5,
-    "goldfish": 7.0,
+    "gold molly": 6.5,
+    "black molly": 6.5,
+    "dalmatian molly": 6.5,
+    "ancistrus catfish": 6.5,
+    "goldfish": 6.5,
 }
 
 SPECIES_MASK_FILL = {
@@ -43,12 +34,12 @@ SPECIES_MASK_FILL = {
 }
 
 SPECIES_PAD_MULTIPLIER = {
-    "guppy": 0.5,
-    "goldfish": 0.4,
-    "gold molly": 0.5,
-    "black molly": 0.5,
-    "dalmatian molly": 0.5,
-    "ancistrus catfish": 0.5,
+    "guppy": 0.2,
+    "goldfish": 0.2,
+    "gold molly": 0.2,
+    "black molly": 0.2,
+    "dalmatian molly": 0.2,
+    "ancistrus catfish": 0.2,
 }
 
 
@@ -161,7 +152,7 @@ class Predictor(BasePredictor):
         species: str = Input(
             description="Fish species to inpaint",
             default="goldfish",
-            choices=list(SPECIES_DIMENSIONS.keys())
+            choices=["goldfish", "guppy", "gold molly", "black molly", "dalmatian molly", "ancistrus catfish"]
         ),
     ) -> Path:
         """Main prediction function"""
