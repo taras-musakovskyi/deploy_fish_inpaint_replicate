@@ -98,13 +98,20 @@ class Predictor(BasePredictor):
     
     def _apply_lora(self, pipeline, lora_path: str, adapter_name: str):
         """Apply LoRA to pipeline UNet"""
+
+        # Remove any existing adapters first to prevent accumulation
+        if hasattr(pipeline.unet, 'peft_config') and len(pipeline.unet.peft_config) > 0:
+            print(f"🧹 Removing existing LoRA adapters: {list(pipeline.unet.peft_config.keys())}")
+            pipeline.unet = pipeline.unet.unload()
+            print(f"✅ Adapters unloaded, restored base UNet")
+
         print(f"🔌 Applying LoRA: {adapter_name}...")
-        
+
         adapter_dir = f"/tmp/lora_{adapter_name}"
         shutil.rmtree(adapter_dir, ignore_errors=True)
         os.makedirs(adapter_dir, exist_ok=True)
         shutil.copy(lora_path, os.path.join(adapter_dir, "adapter_model.safetensors"))
-        
+
         adapter_config = {
             "base_model_name_or_path": self.model_name,
             "peft_type": "LORA",
@@ -113,16 +120,16 @@ class Predictor(BasePredictor):
             "target_modules": ["to_k", "to_q", "to_v", "to_out.0"],
             "lora_dropout": 0.1
         }
-        
+
         with open(os.path.join(adapter_dir, "adapter_config.json"), "w") as f:
             json.dump(adapter_config, f, indent=2)
-        
+
         pipeline.unet = PeftModel.from_pretrained(
             pipeline.unet,
             adapter_dir,
             adapter_name=adapter_name
         )
-        
+
         print(f"✅ LoRA applied: {adapter_name}")
         return pipeline
     
