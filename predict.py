@@ -14,34 +14,8 @@ from diffusers import (
 from peft import PeftModel
 from PIL import Image, ImageDraw, ImageFilter
 
-# Species-specific configurations
-SPECIES_GUIDANCE = {
-    "guppy": 9.5,
-    "gold molly": 6.5,
-    "black molly": 6.5,
-    "dalmatian molly": 6.5,
-    "ancistrus catfish": 6.5,
-    "goldfish": 6.5,
-}
-
-SPECIES_MASK_FILL = {
-    "guppy": 225,
-    "gold molly": 225,
-    "black molly": 225,
-    "dalmatian molly": 225,
-    "ancistrus catfish": 240,
-    "goldfish": 240,
-}
-
-SPECIES_PAD_MULTIPLIER = {
-    "guppy": 0.2,
-    "goldfish": 0.2,
-    "gold molly": 0.2,
-    "black molly": 0.2,
-    "dalmatian molly": 0.2,
-    "ancistrus catfish": 0.2,
-}
-
+# Species-specific configurations moved to HF UI (app.py)
+# These parameters are now passed via API inputs
 
 class Predictor(BasePredictor):
     def setup(self):
@@ -161,6 +135,18 @@ class Predictor(BasePredictor):
             default="goldfish",
             choices=["goldfish", "guppy", "gold molly", "black molly", "dalmatian molly", "ancistrus catfish"]
         ),
+        guidance_scale: float = Input(
+            description="Guidance scale for inpainting (passed from HF UI)",
+            default=6.5
+        ),
+        mask_fill: int = Input(
+            description="Mask fill value for species (passed from HF UI)",
+            default=225
+        ),
+        pad_multiplier: float = Input(
+            description="Padding multiplier for mask crop (passed from HF UI)",
+            default=0.2
+        ),
     ) -> Path:
         """Main prediction function"""
         
@@ -177,7 +163,7 @@ class Predictor(BasePredictor):
                 raise ValueError("Image is required for inpaint_fish mode")
             if mask_image is None:
                 raise ValueError("Mask image is required for inpaint_fish mode")
-            return self._inpaint_fish(image, mask_image, species, generator)
+            return self._inpaint_fish(image, mask_image, species, generator, guidance_scale, mask_fill, pad_multiplier)
     
     def _generate_underwater_room(self, prompt: str, generator):
         """Stage 1 + 1.1: Generate and upscale underwater room"""
@@ -226,31 +212,29 @@ class Predictor(BasePredictor):
         
         return Path(output_path)
     
-    def _inpaint_fish(self, base_image_path: Path, mask_image_path: Path, species: str, generator):
+    def _inpaint_fish(self, base_image_path: Path, mask_image_path: Path, species: str, generator, guidance_scale: float, mask_fill: int, pad_multiplier: float):
         """Stage 2: Inpaint fish into base image"""
         print(f"🐟 Starting fish inpainting for species: {species}")
-        
+        print(f"⚙️  Config from HF UI: guidance_scale={guidance_scale}, mask_fill={mask_fill}, pad_multiplier={pad_multiplier}")
+
         # Apply fish LoRA
         self.pipe_inpaint = self._apply_lora(
             self.pipe_inpaint,
             self.fish_lora_path,
             "fish_lora"
         )
-        
+
         # Load base image
         print("📷 Loading base image...")
         init_image = Image.open(str(base_image_path)).convert("RGB")
         w, h = init_image.size
         print(f"📐 Base image size: {w}x{h}")
-        
+
         # Load mask from UI (binary: 0=keep, 255=inpaint)
         print("🎭 Loading mask image...")
         mask_image = Image.open(str(mask_image_path)).convert("L")
-        
-        # Get species-specific configs
-        guidance_scale = SPECIES_GUIDANCE[species]
-        mask_fill = SPECIES_MASK_FILL[species]
-        pad_multiplier = SPECIES_PAD_MULTIPLIER[species]
+
+        # Use config values passed from HF UI (no longer looking up from hardcoded maps)
         
         # Adjust mask fill value based on species (convert binary to species-specific)
         print(f"🎨 Adjusting mask fill to species-specific value: {mask_fill}")
